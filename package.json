@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "socket": "node server.js"
+    "server": "node backend/server.js"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
