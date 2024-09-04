@@ -1,7 +1,6 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const next = require("next");
 const dotenv = require("dotenv");
 
 dotenv.config({ path: "../.env" });
@@ -36,7 +35,7 @@ io.on("connection", (socket) => {
     if (existingPlayer) {
       existingPlayer.id = socket.id;
     } else {
-      const newPlayer = { id: socket.id, name: playerName, balance: 1500 };
+      const newPlayer = { id: socket.id, name: playerName, balance: 2500 }; // Set initial balance here
       game.players.push(newPlayer);
     }
 
