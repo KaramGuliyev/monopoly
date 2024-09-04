@@ -1,20 +1,17 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { nanoid } from "nanoid";
-import { CreateGameRequest, CreateGameResponse } from "../../types/game";
+import { CreateGameRequest, CreateGameResponse } from "../../../types/game";
 
 const prisma = new PrismaClient();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<CreateGameResponse | { message: string }>) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method Not Allowed" });
-  }
-
+export async function POST(request: Request) {
   try {
-    const { playerName } = req.body as CreateGameRequest;
+    const body: CreateGameRequest = await request.json();
+    const { playerName } = body;
 
     if (!playerName) {
-      return res.status(400).json({ message: "Player name is required" });
+      return NextResponse.json({ message: "Player name is required" }, { status: 400 });
     }
 
     // Benzersiz bir oyun kodu oluştur
@@ -38,14 +35,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
       },
     });
 
-    res.status(201).json({
+    const response: CreateGameResponse = {
       message: "Game created successfully",
       gameCode: newGame.code,
       playerId: newGame.players[0].id,
-    });
+    };
+
+    return NextResponse.json(response, { status: 201 });
   } catch (error) {
     console.error("Game creation error:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   } finally {
     await prisma.$disconnect();
   }

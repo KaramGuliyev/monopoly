@@ -40,3 +40,16 @@ export interface JoinGameResponse {
   message: string;
   playerId: string;
 }
+
+export interface CreateTransferRequest {
+  fromPlayerId: string;
+  toPlayerId: string;
+  amount: number;
+}
+
+export interface CreateTransferResponse {
+  message: string;
+  transferId: string;
+  fromPlayerBalance: number;
+  toPlayerBalance: number;
+}
