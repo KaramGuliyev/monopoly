@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import io from "socket.io-client";
 
 interface Player {
   id: string;
@@ -20,7 +21,34 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [transferAmount, setTransferAmount] = useState("");
   const [selectedPlayer, setSelectedPlayer] = useState("");
+  const [socket, setSocket] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const newSocket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001");
+    setSocket(newSocket);
+
+    newSocket.on("connect", () => {
+      console.log("Connected to WebSocket");
+      newSocket.emit("joinGame", { gameCode, playerName });
+    });
+
+    newSocket.on("error", (error) => {
+      console.error("Socket error:", error);
+    });
+
+    newSocket.on("gameUpdate", (updatedGameData: any) => {
+      console.log(updatedGameData);
+
+      console.log(updatedGameData);
+      setPlayers(updatedGameData.players);
+      setCurrentPlayer(updatedGameData.players.find((p: Player) => p.name === playerName) || null);
+    });
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [gameCode, playerName]);
 
   const fetchGameData = useCallback(async () => {
     try {
@@ -39,51 +67,42 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
 
   useEffect(() => {
     fetchGameData();
-    const interval = setInterval(fetchGameData, 5000); // Refresh every 5 seconds
-    return () => clearInterval(interval);
+    // const interval = setInterval(fetchGameData, 5000); // Refresh every 5 seconds
+    // return () => clearInterval(interval);
   }, [fetchGameData]);
 
   const handleTransfer = async () => {
-    if (!currentPlayer || !selectedPlayer || !transferAmount) return;
+    if (!currentPlayer || !selectedPlayer || !transferAmount) {
+      console.error("Transfer data incomplete:", { currentPlayer, selectedPlayer, transferAmount });
+      return;
+    }
+
+    console.log(currentPlayer.name);
 
     try {
-      const response = await fetch("/api/transfers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fromPlayerId: currentPlayer.id,
-          toPlayerId: selectedPlayer,
-          amount: parseInt(transferAmount),
-        }),
+      const transferData = {
+        fromPlayerName: currentPlayer.name,
+        toPlayerName: players.find((p) => p.id === selectedPlayer)?.name,
+        amount: parseInt(transferAmount),
+        gameCode: gameCode,
+      };
+
+      console.log(transferData);
+
+      socket.emit("transfer", transferData, (response: Response) => {
+        console.log("Transfer event response:", response);
       });
-      const data = await response.json();
-      if (response.ok) {
-        console.log("Transfer successful:", data);
-        fetchGameData();
-        setTransferAmount("");
-        setSelectedPlayer("");
-      } else {
-        console.error("Error making transfer:", data.message);
-      }
+
+      setTransferAmount("");
+      setSelectedPlayer("");
     } catch (error) {
-      console.error("Error making transfer:", error);
+      console.error("Error in handleTransfer:", error);
     }
   };
 
   const handleJoinGame = async () => {
     try {
-      const response = await fetch(`/api/games/${gameCode}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerName }),
-      });
-      const data = await response.json();
-      if (response.ok) {
-        console.log("Joined game:", data);
-        fetchGameData();
-      } else {
-        console.error("Error joining game:", data.message);
-      }
+      socket.emit("joinGame", { gameCode, playerName });
     } catch (error) {
       console.error("Error joining game:", error);
     }
