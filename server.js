@@ -79,11 +79,9 @@ io.on("connection", (socket) => {
         // Remove the player from the game
         game.players.splice(playerIndex, 1);
 
-        // If the game is empty, remove it
         if (game.players.length === 0) {
           games.delete(gameCode);
         } else {
-          // Otherwise, update the game state for remaining players
           io.to(gameCode).emit("gameUpdate", game);
         }
         break;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { CreateTransferRequest, CreateTransferResponse } from "../types/game";
+import { CreateTransferRequest, CreateTransferResponse } from "@/types/game";
 
 const prisma = new PrismaClient();
 
