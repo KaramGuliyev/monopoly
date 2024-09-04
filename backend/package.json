@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon index.js dev",
-    "dev": "nodemon index.js dev",
-    "production": "nodemon index.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "NODE_ENV=production node server.js",
   },
   "author": "",
   "license": "ISC",
