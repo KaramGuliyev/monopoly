@@ -10,11 +10,11 @@ const GamePageWrapper: React.FC = () => {
   const code = params.code as string;
   const playerName = searchParams.get('playerName');
 
-  if (typeof code !== "string") {
-    return <div>Invalid game code</div>;
+  if (typeof code !== "string" || !playerName) {
+    return <div>Invalid game code or player name</div>;
   }
 
-  return <GamePage gameCode={code} playerName={playerName || ''} />;
+  return <GamePage gameCode={code} playerName={playerName} />;
 };
 
 export default GamePageWrapper;
