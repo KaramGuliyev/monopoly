@@ -18,7 +18,7 @@ model Game {
 model Player {
   id       String @id @default(uuid())
   name     String
-  balance  Int    @default(150000000000)
+  balance  BigInt    @default(15000000)
   gameId   String
   game     Game   @relation(fields: [gameId], references: [id])
   sentTransfers     Transfer[] @relation("SentTransfers")

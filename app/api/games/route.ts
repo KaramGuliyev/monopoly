@@ -25,7 +25,7 @@ export async function POST(request: Request) {
           create: [
             {
               name: playerName,
-              balance: 150000000000, // Başlangıç bakiyesi
+              balance: 15000000, // Başlangıç bakiyesi
             },
           ],
         },
