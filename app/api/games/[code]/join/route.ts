@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request, { params }: { params: { code: string } }) {
   try {
-    const playerName = localStorage.getItem("playerName");
+    const { playerName } = await request.json();
     if (!playerName) {
       return NextResponse.json({ message: "Player name not found" }, { status: 400 });
     }

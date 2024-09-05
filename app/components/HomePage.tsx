@@ -72,15 +72,15 @@ export const HomePage = () => {
       const response = await fetch(`/api/games/${gameCode}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerName }),
       });
-      localStorage.setItem("playerName", playerName);
       const data = await response.json();
       if (response.ok) {
         toast.success("You've joined the game! Time to crush your opponents (or go bankrupt trying)!", {
           icon: "🏠",
           duration: 3000,
         });
-        router.push(`/game/${gameCode}}`);
+        router.push(`/game/${gameCode}`);
       } else {
         toast.error(`Error joining game: ${data.message}`, {
           icon: "🚷",
