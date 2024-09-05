@@ -237,7 +237,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
           <CardHeader className="text-2xl font-semibold text-center bg-gray-100 py-4">Players</CardHeader>
           <CardContent className="p-6 grow">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, index) => (
+              {[...Array(6)].map((_, index) => (
                 <div
                   key={index}
                   className={`p-4 rounded-lg ${playerColors[index]} ${playerBorders[index]} border-2 ${
