@@ -1,5 +1,5 @@
 import React from "react";
-import { HomePage } from "../components/homepage";
+import HomePage from "./components/homepage";
 const IndexPage: React.FC = () => {
   return <HomePage />;
 };
