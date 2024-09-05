@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import io from "socket.io-client";
 import { FaCopy, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
+import Link from "next/link";
 
 interface Player {
   id: string;
@@ -34,7 +35,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
       setPlayerId(storedPlayerId);
     }
 
-    const newSocket = io("http://localhost:3001");
+    const newSocket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001");
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
@@ -63,21 +64,6 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     };
   }, [gameCode, playerName, playerId]);
 
-  const fetchGameData = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/games/${gameCode}`);
-      const data = await response.json();
-      if (response.ok) {
-        setPlayers(data.players);
-        setCurrentPlayer(data.players.find((p: Player) => p.name === playerName) || null);
-      } else {
-        console.error("Error fetching game data:", data.message);
-      }
-    } catch (error) {
-      console.error("Error fetching game data:", error);
-    }
-  }, [gameCode, playerName]);
-
   const handleTransfer = async () => {
     if (!currentPlayer || !selectedPlayer || !transferAmount) {
       toast.error("Oops! Looks like you're trying to transfer imaginary money to an imaginary friend.", {
@@ -88,16 +74,28 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     }
 
     toast.promise(
-      new Promise((resolve) => {
-        socket.emit("transfer", {
-          fromPlayerName: currentPlayer.name,
-          toPlayerName: players.find((p) => p.id === selectedPlayer)?.name,
-          amount: parseInt(transferAmount),
-          gameCode: gameCode,
-        }, () => resolve(null));
+      new Promise((resolve, reject) => {
+        socket.emit(
+          "transfer",
+          {
+            fromPlayerName: currentPlayer.name,
+            toPlayerName: players.find((p) => p.id === selectedPlayer)?.name,
+            amount: parseInt(transferAmount),
+            gameCode: gameCode,
+          },
+          (response: any) => {
+            if (response && response.success) {
+              resolve(response.message); // Başarı durumunda
+            } else {
+              reject(new Error(response.message || "Bank transfer failed")); // Hata durumunda
+            }
+          }
+        );
       }),
       {
-        loading: `Transferring ${transferAmount} to ${players.find((p) => p.id === selectedPlayer)?.name}... Hope they're worth it!`,
+        loading: `Transferring ${transferAmount} to ${
+          players.find((p) => p.id === selectedPlayer)?.name
+        }... Hope they're worth it!`,
         success: `Transfer complete! You're ${transferAmount} poorer. Congrats?`,
         error: "Transfer failed. The bank must be as broke as you are!",
       }
@@ -120,13 +118,23 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     const consequence = flag === "take" ? "deeper in debt" : "slightly less poor";
 
     toast.promise(
-      new Promise((resolve) => {
-        socket.emit("bankTransfer", {
-          fromPlayerName: currentPlayer.name,
-          amount: parseInt(transferAmount),
-          gameCode: gameCode,
-          flag: flag,
-        }, () => resolve(null));
+      new Promise((resolve, reject) => {
+        socket.emit(
+          "bankTransfer",
+          {
+            fromPlayerName: currentPlayer.name,
+            amount: parseInt(transferAmount),
+            gameCode: gameCode,
+            flag: flag,
+          },
+          (response: any) => {
+            if (response && response.success) {
+              resolve(response.message); // Başarı durumunda
+            } else {
+              reject(new Error(response.message || "Bank transfer failed")); // Hata durumunda
+            }
+          }
+        );
       }),
       {
         loading: `${action} ${transferAmount} from the bank... Fingers crossed they don't check your credit score!`,
@@ -179,9 +187,9 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     if (value === "C") {
       setTransferAmount("");
     } else if (value === "←") {
-      setTransferAmount(prev => prev.slice(0, -1));
+      setTransferAmount((prev) => prev.slice(0, -1));
     } else {
-      setTransferAmount(prev => prev + value);
+      setTransferAmount((prev) => prev + value);
     }
   };
 
@@ -199,23 +207,35 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     </div>
   );
 
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    } else {
+      return num.toLocaleString();
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
       <Toaster position="top-right" />
+      <Link href="/" className="text-black-600 hover:text-blue-800 transition-colors duration-300 mr-4 font-semibold">
+        ← Home Page
+      </Link>
       <div className="flex items-center mb-8">
         <h1 className="text-4xl font-bold text-center text-gray-800 mr-4">Game: {gameCode}</h1>
-        <Button
+        <span
           onClick={copyGameCode}
           className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center transition-colors duration-300"
         >
-          <FaCopy className="mr-2" />
-          Copy
-        </Button>
+          <FaCopy className="" />
+        </span>
       </div>
       <div className="w-full max-w-4xl">
-        <Card className="mb-8 shadow-lg">
+        <Card className="mb-8 shadow-lg flex flex-col">
           <CardHeader className="text-2xl font-semibold text-center bg-gray-100 py-4">Players</CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 grow">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[...Array(4)].map((_, index) => (
                 <div
@@ -227,7 +247,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
                   {players[index] ? (
                     <div className="text-center">
                       <p className="font-semibold text-lg mb-2">{players[index].name}</p>
-                      <p className="text-2xl font-bold">${players[index].balance}</p>
+                      <p className="text-2xl font-bold">${formatNumber(players[index].balance)}</p>
                     </div>
                   ) : (
                     <p className="text-center text-gray-500">Waiting for player...</p>
@@ -237,7 +257,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
             </div>
           </CardContent>
           {players.length < 4 && !currentPlayer && (
-            <CardFooter>
+            <CardFooter className="mt-auto">
               <Button
                 onClick={handleJoinGame}
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
@@ -250,7 +270,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
         {currentPlayer && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
             <Card className="shadow-lg">
-              <CardHeader 
+              <CardHeader
                 className="text-xl font-semibold text-center bg-gray-100 py-4 cursor-pointer flex justify-between items-center"
                 onClick={() => setIsTransferExpanded(!isTransferExpanded)}
               >
@@ -273,9 +293,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
                         </option>
                       ))}
                   </select>
-                  <div className="mb-4 text-center text-2xl font-bold">
-                    ${transferAmount}
-                  </div>
+                  <div className="mb-4 text-center text-2xl font-bold">${formatNumber(parseInt(transferAmount) || 0)}</div>
                   {renderNumpad()}
                   <Button
                     onClick={handleTransfer}
@@ -287,7 +305,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
               )}
             </Card>
             <Card className="shadow-lg">
-              <CardHeader 
+              <CardHeader
                 className="text-xl font-semibold text-center bg-gray-100 py-4 cursor-pointer flex justify-between items-center"
                 onClick={() => setIsBankExpanded(!isBankExpanded)}
               >
@@ -296,9 +314,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
               </CardHeader>
               {isBankExpanded && (
                 <CardContent className="p-6">
-                  <div className="mb-4 text-center text-2xl font-bold">
-                    ${transferAmount}
-                  </div>
+                  <div className="mb-4 text-center text-2xl font-bold">${formatNumber(parseInt(transferAmount) || 0)}</div>
                   {renderNumpad()}
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <Button
