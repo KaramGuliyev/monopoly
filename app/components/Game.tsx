@@ -47,7 +47,6 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     });
 
     newSocket.on("gameUpdate", (updatedGameData: any) => {
-      console.log(updatedGameData);
       setPlayers(updatedGameData.players);
       const updatedCurrentPlayer = updatedGameData.players.find((p: Player) => p.name === playerName);
       if (updatedCurrentPlayer) {
