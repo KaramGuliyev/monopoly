@@ -32,13 +32,16 @@ export const HomePage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerName }),
       });
+      console.log(response);
+
       const data = await response.json();
+      localStorage.setItem("playerName", playerName);
       if (response.ok) {
         toast.success("Game created successfully! Prepare to lose all your virtual money!", {
           icon: "🎉",
           duration: 3000,
         });
-        router.push(`/game/${data.gameCode}?playerName=${encodeURIComponent(playerName)}`);
+        router.push(`/game/${data.gameCode}`);
       } else {
         toast.error(`Error creating game: ${data.message}`, {
           icon: "😢",
@@ -69,15 +72,15 @@ export const HomePage = () => {
       const response = await fetch(`/api/games/${gameCode}/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playerName }),
       });
+      localStorage.setItem("playerName", playerName);
       const data = await response.json();
       if (response.ok) {
         toast.success("You've joined the game! Time to crush your opponents (or go bankrupt trying)!", {
           icon: "🏠",
           duration: 3000,
         });
-        router.push(`/game/${gameCode}?playerName=${encodeURIComponent(playerName)}`);
+        router.push(`/game/${gameCode}}`);
       } else {
         toast.error(`Error joining game: ${data.message}`, {
           icon: "🚷",

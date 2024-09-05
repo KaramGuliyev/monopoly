@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 export async function GET(request: NextRequest, { params }: { params: { code: string } }) {
   try {
     const { code } = params;
+    const playerName = localStorage.getItem("playerName");
 
     if (!code || typeof code !== "string") {
       return NextResponse.json({ message: "Invalid game code" }, { status: 400 });

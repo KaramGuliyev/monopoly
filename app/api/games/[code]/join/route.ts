@@ -3,12 +3,12 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export async function POST(
-  request: Request,
-  { params }: { params: { code: string } }
-) {
+export async function POST(request: Request, { params }: { params: { code: string } }) {
   try {
-    const { playerName } = await request.json();
+    const playerName = localStorage.getItem("playerName");
+    if (!playerName) {
+      return NextResponse.json({ message: "Player name not found" }, { status: 400 });
+    }
     const { code } = params;
 
     const game = await prisma.game.findUnique({
