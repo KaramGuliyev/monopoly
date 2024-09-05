@@ -36,7 +36,7 @@ io.on("connection", (socket) => {
     if (existingPlayer) {
       existingPlayer.socketId = socket.id;
     } else {
-      const newPlayer = { id: playerId || uuidv4(), socketId: socket.id, name: playerName, balance: 1500 };
+      const newPlayer = { id: playerId || uuidv4(), socketId: socket.id, name: playerName, balance: 150000000000 };
       game.players.push(newPlayer);
     }
 
