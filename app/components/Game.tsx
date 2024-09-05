@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
 import { Card, CardHeader, CardContent, CardFooter } from "@/app/components/ui/card";
 import { useRouter } from "next/navigation";
 import io from "socket.io-client";
-import { FaCopy } from "react-icons/fa";
+import { FaCopy, FaChevronDown, FaChevronUp } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 
 interface Player {
@@ -26,6 +25,8 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
   const [socket, setSocket] = useState<any>(null);
   const router = useRouter();
   const [playerId, setPlayerId] = useState<string | null>(null);
+  const [isTransferExpanded, setIsTransferExpanded] = useState(false);
+  const [isBankExpanded, setIsBankExpanded] = useState(false);
 
   useEffect(() => {
     const storedPlayerId = localStorage.getItem(`playerId_${gameCode}_${playerName}`);
@@ -193,6 +194,30 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     );
   };
 
+  const handleNumpadClick = (value: string) => {
+    if (value === "C") {
+      setTransferAmount("");
+    } else if (value === "←") {
+      setTransferAmount(prev => prev.slice(0, -1));
+    } else {
+      setTransferAmount(prev => prev + value);
+    }
+  };
+
+  const renderNumpad = () => (
+    <div className="grid grid-cols-3 gap-2 mt-4">
+      {["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "←"].map((value) => (
+        <Button
+          key={value}
+          onClick={() => handleNumpadClick(value)}
+          className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded"
+        >
+          {value}
+        </Button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
       <Toaster position="top-right" />
@@ -242,64 +267,74 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
           )}
         </Card>
         {currentPlayer && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
             <Card className="shadow-lg">
-              <CardHeader className="text-xl font-semibold text-center bg-gray-100 py-4">Make a Transfer</CardHeader>
-              <CardContent className="p-6">
-                <select
-                  value={selectedPlayer}
-                  onChange={(e) => setSelectedPlayer(e.target.value)}
-                  className="mb-4 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300"
-                >
-                  <option value="">Select a player</option>
-                  {players
-                    .filter((p) => p.id !== currentPlayer?.id)
-                    .map((player) => (
-                      <option key={player.id} value={player.id}>
-                        {player.name}
-                      </option>
-                    ))}
-                </select>
-                <Input
-                  type="number"
-                  placeholder="Enter amount"
-                  value={transferAmount}
-                  onChange={(e) => setTransferAmount(e.target.value)}
-                  className="mb-4"
-                />
-                <Button
-                  onClick={handleTransfer}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
-                >
-                  Transfer
-                </Button>
-              </CardContent>
+              <CardHeader 
+                className="text-xl font-semibold text-center bg-gray-100 py-4 cursor-pointer flex justify-between items-center"
+                onClick={() => setIsTransferExpanded(!isTransferExpanded)}
+              >
+                <span>Make a Transfer</span>
+                {isTransferExpanded ? <FaChevronUp /> : <FaChevronDown />}
+              </CardHeader>
+              {isTransferExpanded && (
+                <CardContent className="p-6">
+                  <select
+                    value={selectedPlayer}
+                    onChange={(e) => setSelectedPlayer(e.target.value)}
+                    className="mb-4 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300"
+                  >
+                    <option value="">Select a player</option>
+                    {players
+                      .filter((p) => p.id !== currentPlayer?.id)
+                      .map((player) => (
+                        <option key={player.id} value={player.id}>
+                          {player.name}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="mb-4 text-center text-2xl font-bold">
+                    ${transferAmount}
+                  </div>
+                  {renderNumpad()}
+                  <Button
+                    onClick={handleTransfer}
+                    className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
+                  >
+                    Transfer
+                  </Button>
+                </CardContent>
+              )}
             </Card>
             <Card className="shadow-lg">
-              <CardHeader className="text-xl font-semibold text-center bg-gray-100 py-4">BANK</CardHeader>
-              <CardContent className="p-6">
-                <Input
-                  type="number"
-                  placeholder="Enter amount"
-                  value={transferAmount}
-                  onChange={(e) => setTransferAmount(e.target.value)}
-                  className="mb-4"
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <Button
-                    onClick={() => handleBankTransfer("take")}
-                    className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
-                  >
-                    Take Loan
-                  </Button>
-                  <Button
-                    onClick={() => handleBankTransfer("pay")}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
-                  >
-                    Pay Loan
-                  </Button>
-                </div>
-              </CardContent>
+              <CardHeader 
+                className="text-xl font-semibold text-center bg-gray-100 py-4 cursor-pointer flex justify-between items-center"
+                onClick={() => setIsBankExpanded(!isBankExpanded)}
+              >
+                <span>BANK</span>
+                {isBankExpanded ? <FaChevronUp /> : <FaChevronDown />}
+              </CardHeader>
+              {isBankExpanded && (
+                <CardContent className="p-6">
+                  <div className="mb-4 text-center text-2xl font-bold">
+                    ${transferAmount}
+                  </div>
+                  {renderNumpad()}
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <Button
+                      onClick={() => handleBankTransfer("take")}
+                      className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
+                    >
+                      Take Loan
+                    </Button>
+                    <Button
+                      onClick={() => handleBankTransfer("pay")}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
+                    >
+                      Pay Loan
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
             </Card>
           </div>
         )}
