@@ -167,7 +167,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
   const playerBorders = ["border-red-500", "border-blue-500", "border-green-500", "border-yellow-500"];
 
   const copyGameCode = () => {
-    navigator.clipboard.writeText(gameCode).then(
+    navigator.clipboard.writeText(`${window.location.origin}/game/${gameCode}`).then(
       () => {
         toast.success("Game code copied! Now you can invite friends... if you have any.", {
           icon: "📋",
