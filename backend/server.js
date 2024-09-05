@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const dotenv = require("dotenv");
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require("uuid");
 
 dotenv.config({ path: "../.env" });
 
@@ -10,7 +10,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: ["http://localhost:3000", "http://localhost:3001", /\.ngrok-free\.app$/],
+
     methods: ["GET", "POST"],
     credentials: true,
   },
