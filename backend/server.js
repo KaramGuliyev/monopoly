@@ -11,7 +11,6 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: ["http://localhost:3000", "http://localhost:3001", /\.ngrok-free\.app$/, "https://monopoly-murex.vercel.app"],
-
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -42,40 +41,46 @@ io.on("connection", (socket) => {
     }
 
     io.to(gameCode).emit("gameUpdate", game);
+    socket.emit("success", { message: "Joined game successfully!" });
   });
 
-  socket.on("bankTransfer", (data) => {
-    console.log(`Received transfer event from ${socket.id}:`, JSON.stringify(data));
-    const { fromPlayerName, flag, amount, gameCode } = data;
+  socket.on("bankTransfer", (data, callback) => {
+    try {
+      const { fromPlayerName, flag, amount, gameCode } = data;
 
-    const game = games.get(gameCode);
-    if (!game) {
-      console.error(`Game not found for code: ${gameCode}`);
-      return;
+      const game = games.get(gameCode);
+      if (!game) {
+        callback({ error: true, message: `Game not found for code: ${gameCode}` });
+        return;
+      }
+
+      const fromPlayer = game.players.find((p) => p.name === fromPlayerName);
+
+      if (!fromPlayer) {
+        callback({ error: true, message: `Player not found: ${fromPlayerName}` });
+        return;
+      }
+
+      if (fromPlayer.balance < amount) {
+        callback({ error: true, message: `Insufficient balance for ${fromPlayerName}` });
+        return;
+      }
+
+      if (flag === "pay") {
+        fromPlayer.balance -= amount;
+      } else if (flag === "take") {
+        fromPlayer.balance += amount;
+      }
+
+      io.to(gameCode).emit("gameUpdate", game);
+
+      callback({ success: true, message: "Bank transfer successful" });
+    } catch (err) {
+      callback({ error: true, message: "An error occurred during the bank transfer" });
     }
-
-    const fromPlayer = game.players.find((p) => p.name === fromPlayerName);
-
-    if (!fromPlayer) {
-      console.error(`Player not found: ${fromPlayerName}`);
-      return;
-    }
-
-    if (fromPlayer.balance < amount) {
-      console.error(`Insufficient balance for ${fromPlayerName}`);
-      return;
-    }
-
-    if (flag === "pay") {
-      fromPlayer.balance -= amount;
-    } else if (flag === "take") {
-      fromPlayer.balance += amount;
-    }
-
-    console.log(`Transfer successful: ${fromPlayerName}, Amount: ${amount}`);
-    io.to(gameCode).emit("gameUpdate", game);
   });
-  socket.on("transfer", (data) => {
+
+  socket.on("transfer", (data, callback) => {
     console.log(`Received transfer event from ${socket.id}:`, JSON.stringify(data));
     const { fromPlayerName, toPlayerName, amount, gameCode } = data;
 
@@ -103,11 +108,11 @@ io.on("connection", (socket) => {
 
     console.log(`Transfer successful: ${fromPlayerName} -> ${toPlayerName}, Amount: ${amount}`);
     io.to(gameCode).emit("gameUpdate", game);
+    callback({ success: true, message: "Money transfer successful!" });
   });
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
-    // Don't remove the player from the game, just update their socket ID
     for (const [gameCode, game] of games.entries()) {
       const player = game.players.find((p) => p.socketId === socket.id);
       if (player) {

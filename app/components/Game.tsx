@@ -34,7 +34,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
       setPlayerId(storedPlayerId);
     }
 
-    const newSocket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || "http://localhost:3001");
+    const newSocket = io("http://localhost:3001");
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
@@ -79,78 +79,63 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
   }, [gameCode, playerName]);
 
   const handleTransfer = async () => {
-    toast(`Transferring ${transferAmount} to ${selectedPlayer}...`, {
-      icon: "💸",
-      style: {
-        borderRadius: "10px",
-        background: "#333",
-        color: "#fff",
-      },
-      position: "top-center",
-    });
     if (!currentPlayer || !selectedPlayer || !transferAmount) {
-      console.error("Transfer data incomplete:", { currentPlayer, selectedPlayer, transferAmount });
+      toast.error("Oops! Looks like you're trying to transfer imaginary money to an imaginary friend.", {
+        icon: "🤦‍♂️",
+        duration: 4000,
+      });
       return;
     }
 
-    console.log(currentPlayer.name);
+    toast.promise(
+      new Promise((resolve) => {
+        socket.emit("transfer", {
+          fromPlayerName: currentPlayer.name,
+          toPlayerName: players.find((p) => p.id === selectedPlayer)?.name,
+          amount: parseInt(transferAmount),
+          gameCode: gameCode,
+        }, () => resolve(null));
+      }),
+      {
+        loading: `Transferring ${transferAmount} to ${players.find((p) => p.id === selectedPlayer)?.name}... Hope they're worth it!`,
+        success: `Transfer complete! You're ${transferAmount} poorer. Congrats?`,
+        error: "Transfer failed. The bank must be as broke as you are!",
+      }
+    );
 
-    try {
-      const transferData = {
-        fromPlayerName: currentPlayer.name,
-        toPlayerName: players.find((p) => p.id === selectedPlayer)?.name,
-        amount: parseInt(transferAmount),
-        gameCode: gameCode,
-      };
-
-      console.log(transferData);
-
-      socket.emit("transfer", transferData, (response: Response) => {
-        console.log("Transfer event response:", response);
-      });
-
-      setTransferAmount("");
-      setSelectedPlayer("");
-    } catch (error) {
-      console.error("Error in handleTransfer:", error);
-    }
+    setTransferAmount("");
+    setSelectedPlayer("");
   };
 
   const handleBankTransfer = async (flag: string) => {
-    toast(`Bank ${flag}...`, {
-      icon: "💸",
-      style: {
-        borderRadius: "10px",
-        background: "#333",
-        color: "#fff",
-      },
-      position: "top-center",
-    });
     if (!currentPlayer || !transferAmount) {
-      console.error("Transfer data incomplete:", { currentPlayer, transferAmount, flag });
+      toast.error("Trying to manipulate thin air? That's not how money works, buddy.", {
+        icon: "💸",
+        duration: 4000,
+      });
       return;
     }
 
-    console.log(currentPlayer.name);
+    const action = flag === "take" ? "Borrowing" : "Repaying";
+    const consequence = flag === "take" ? "deeper in debt" : "slightly less poor";
 
-    try {
-      const transferData = {
-        fromPlayerName: currentPlayer.name,
-        amount: parseInt(transferAmount),
-        gameCode: gameCode,
-        flag: flag,
-      };
+    toast.promise(
+      new Promise((resolve) => {
+        socket.emit("bankTransfer", {
+          fromPlayerName: currentPlayer.name,
+          amount: parseInt(transferAmount),
+          gameCode: gameCode,
+          flag: flag,
+        }, () => resolve(null));
+      }),
+      {
+        loading: `${action} ${transferAmount} from the bank... Fingers crossed they don't check your credit score!`,
+        success: `${action} successful! You're now ${consequence}. Living the dream, huh?`,
+        error: "Transaction failed. Have you tried asking your parents for money instead?",
+      }
+    );
 
-      console.log(transferData);
-
-      socket.emit("bankTransfer", transferData, (response: Response) => {
-        console.log("Transfer event response:", response);
-      });
-
-      setTransferAmount("");
-    } catch (error) {
-      console.error("Error in handleBankTransfer:", error);
-    }
+    setTransferAmount("");
   };
 
   const handleJoinGame = async () => {
@@ -176,19 +161,16 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
   const copyGameCode = () => {
     navigator.clipboard.writeText(gameCode).then(
       () => {
-        toast("Game code copied to clipboard!", {
+        toast.success("Game code copied! Now you can invite friends... if you have any.", {
           icon: "📋",
-          style: {
-            borderRadius: "10px",
-            background: "#333",
-            color: "#fff",
-          },
-          position: "top-center",
+          duration: 3000,
         });
       },
       (err) => {
-        console.error("Could not copy text: ", err);
-        toast.error("Failed to copy game code");
+        toast.error("Failed to copy. Technology is hard, isn't it?", {
+          icon: "😅",
+          duration: 3000,
+        });
       }
     );
   };
