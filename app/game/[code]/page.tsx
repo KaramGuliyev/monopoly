@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import GamePage from "@/app/components/game";
+import GamePage from "@/app/components/Game";
 
 const GamePageWrapper: React.FC = () => {
   const params = useParams();
