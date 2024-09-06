@@ -195,8 +195,14 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     }
   };
 
-  const playerColors = ["bg-red-100", "bg-blue-100", "bg-green-100", "bg-yellow-100"];
-  const playerBorders = ["border-red-500", "border-blue-500", "border-green-500", "border-yellow-500"];
+  const playerColors = [
+    "bg-red-100", "bg-blue-100", "bg-green-100", 
+    "bg-yellow-100", "bg-purple-100", "bg-pink-100"
+  ];
+  const playerBorders = [
+    "border-red-500", "border-blue-500", "border-green-500", 
+    "border-yellow-500", "border-purple-500", "border-pink-500"
+  ];
 
   const copyGameCode = () => {
     navigator.clipboard.writeText(`${window.location.origin}/game/${gameCode}`).then(
@@ -220,25 +226,25 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
   };
 
   return (
-    <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
+    <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-100 to-gray-200">
       <Toaster position="top-right" />
-      <Link href="/" className="text-black-600 hover:text-blue-800 transition-colors duration-300 mr-4 font-semibold">
+      <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors duration-300 mb-4 font-semibold">
         ← Home Page
       </Link>
-      <div className="flex items-center mb-8">
+      <div className="flex flex-col items-center mb-8">
         <h1 className="text-4xl font-bold text-center text-gray-800 mr-4">Game: {gameCode}</h1>
         <span
           onClick={copyGameCode}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center transition-colors duration-300"
+          className="bg-blue-500 mt-4 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded inline-flex items-center transition-colors duration-300 cursor-pointer"
         >
-          <FaCopy className="" />
+          <FaCopy className="mr-2" /> Copy
         </span>
       </div>
       <div className="w-full max-w-4xl">
         <Card className="mb-8 shadow-lg flex flex-col">
           <CardHeader className="text-2xl font-semibold text-center bg-gray-100 py-4">Players</CardHeader>
           <CardContent className="p-6 grow">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, index) => (
                 <div
                   key={index}
@@ -262,7 +268,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
             <CardFooter className="mt-auto">
               <Button
                 onClick={handleJoinGame}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300 animate-pulse"
               >
                 Join Game
               </Button>
