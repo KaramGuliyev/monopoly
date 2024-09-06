@@ -226,7 +226,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
   };
 
   return (
-    <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-100 to-gray-200">
+    <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-screen">
       <Toaster position="top-right" />
       <Link href="/" className="text-blue-600 hover:text-blue-800 transition-colors duration-300 mb-4 font-semibold">
         ← Home Page
