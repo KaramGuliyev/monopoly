@@ -62,6 +62,10 @@ io.on("connection", (socket) => {
       }
 
       if (flag === "pay") {
+        if (fromPlayer.balance < amount) {
+          callback({ error: true, message: "Insufficient balance" });
+          return;
+        }
         fromPlayer.balance -= amount;
       } else if (flag === "take") {
         fromPlayer.balance += amount;
