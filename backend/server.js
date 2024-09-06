@@ -31,7 +31,6 @@ io.on("connection", (socket) => {
 
     const game = games.get(gameCode);
 
-    // Check if player already exists
     let existingPlayer = game.players.find((p) => p.id === playerId);
     if (existingPlayer) {
       existingPlayer.socketId = socket.id;
@@ -44,48 +43,11 @@ io.on("connection", (socket) => {
     socket.emit("success", { message: "Joined game successfully!" });
   });
 
-  socket.on("bankTransfer", (data, callback) => {
-    try {
-      const { fromPlayerName, flag, amount, gameCode } = data;
-
-      const game = games.get(gameCode);
-      if (!game) {
-        callback({ error: true, message: `Game not found for code: ${gameCode}` });
-        return;
-      }
-
-      const fromPlayer = game.players.find((p) => p.name === fromPlayerName);
-
-      if (!fromPlayer) {
-        callback({ error: true, message: `Player not found: ${fromPlayerName}` });
-        return;
-      }
-
-      if (flag === "pay") {
-        if (fromPlayer.balance < amount) {
-          callback({ error: true, message: "Insufficient balance" });
-          return;
-        }
-        fromPlayer.balance -= amount;
-      } else if (flag === "take") {
-        fromPlayer.balance += amount;
-      }
-
-      io.to(gameCode).emit("gameUpdate", game);
-
-      callback({ success: true, message: "Bank transfer successful" });
-    } catch (err) {
-      callback({ error: true, message: "An error occurred during the bank transfer" });
-    }
-  });
-
   socket.on("transfer", (data, callback) => {
-    console.log(`Received transfer event from ${socket.id}:`, JSON.stringify(data));
     const { fromPlayerName, toPlayerName, amount, gameCode } = data;
-
     const game = games.get(gameCode);
     if (!game) {
-      console.error(`Game not found for code: ${gameCode}`);
+      callback({ success: false, message: "Game not found" });
       return;
     }
 
@@ -93,21 +55,69 @@ io.on("connection", (socket) => {
     const toPlayer = game.players.find((p) => p.name === toPlayerName);
 
     if (!fromPlayer || !toPlayer) {
-      console.error(`Players not found: ${fromPlayerName}, ${toPlayerName}`);
+      callback({ success: false, message: "Player not found" });
       return;
     }
 
     if (fromPlayer.balance < amount) {
-      console.error(`Insufficient balance for ${fromPlayerName}`);
+      callback({ success: false, message: "Insufficient balance" });
       return;
     }
 
     fromPlayer.balance -= amount;
     toPlayer.balance += amount;
 
-    console.log(`Transfer successful: ${fromPlayerName} -> ${toPlayerName}, Amount: ${amount}`);
-    io.to(gameCode).emit("gameUpdate", game);
-    callback({ success: true, message: "Money transfer successful!" });
+    game.lastTransfer = {
+      from: fromPlayerName,
+      to: toPlayerName,
+      amount,
+    };
+
+    io.to(gameCode).emit("gameUpdate", {
+      players: game.players,
+      lastTransfer: game.lastTransfer,
+    });
+
+    callback({ success: true, message: "Transfer successful!" });
+  });
+
+  socket.on("bankTransfer", (data, callback) => {
+    const { fromPlayerName, amount, gameCode, flag } = data;
+    const game = games.get(gameCode);
+    if (!game) {
+      callback({ success: false, message: `Game not found for code: ${gameCode}` });
+      return;
+    }
+
+    const fromPlayer = game.players.find((p) => p.name === fromPlayerName);
+
+    if (!fromPlayer) {
+      callback({ success: false, message: `Player not found: ${fromPlayerName}` });
+      return;
+    }
+
+    if (flag === "pay") {
+      if (fromPlayer.balance < amount) {
+        callback({ success: false, message: "Insufficient balance" });
+        return;
+      }
+      fromPlayer.balance -= amount;
+    } else if (flag === "take") {
+      fromPlayer.balance += amount;
+    }
+
+    game.lastTransfer = {
+      from: flag === "take" ? "Bank" : fromPlayerName,
+      to: flag === "take" ? fromPlayerName : "Bank",
+      amount,
+    };
+
+    io.to(gameCode).emit("gameUpdate", {
+      players: game.players,
+      lastTransfer: game.lastTransfer,
+    });
+
+    callback({ success: true, message: "Bank transfer successful" });
   });
 
   socket.on("disconnect", () => {
@@ -123,11 +133,6 @@ io.on("connection", (socket) => {
   });
 });
 
-function emitGameUpdate(gameCode, gameData) {
-  console.log("Emitting game update");
-  io.to(gameCode).emit("gameUpdate", gameData);
-}
-
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
@@ -137,4 +142,4 @@ app.use((req, res) => {
   console.log(`Received request: ${req.method} ${req.url}`);
 });
 
-module.exports = { io, emitGameUpdate };
+module.exports = { io };

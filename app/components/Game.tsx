@@ -28,6 +28,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [isTransferExpanded, setIsTransferExpanded] = useState(false);
   const [isBankExpanded, setIsBankExpanded] = useState(false);
+  const [lastTransfer, setLastTransfer] = useState<{ from: string; to: string; amount: number } | null>(null);
 
   useEffect(() => {
     const storedPlayerId = localStorage.getItem(`playerId_${gameCode}_${playerName}`);
@@ -57,12 +58,40 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
           localStorage.setItem(`playerId_${gameCode}_${playerName}`, updatedCurrentPlayer.id);
         }
       }
+      
+      // Check for transfer
+      if (updatedGameData.lastTransfer && 
+          (updatedGameData.lastTransfer.from !== lastTransfer?.from ||
+           updatedGameData.lastTransfer.to !== lastTransfer?.to ||
+           updatedGameData.lastTransfer.amount !== lastTransfer?.amount)) {
+        setLastTransfer(updatedGameData.lastTransfer);
+        toast.success(
+          `${updatedGameData.lastTransfer.from} sent $${formatNumber(updatedGameData.lastTransfer.amount)} to ${updatedGameData.lastTransfer.to}`,
+          {
+            duration: 5000,
+            icon: "💸",
+          }
+        );
+      }
     });
 
     return () => {
       newSocket.disconnect();
     };
-  }, [gameCode, playerName, playerId]);
+  }, [gameCode, playerName, playerId, lastTransfer]);
+
+  const handleTransferAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/[^\d]/g, '');
+    setTransferAmount(formatNumberWithCommas(value));
+  };
+
+  const formatNumberWithCommas = (value: string): string => {
+    return value.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  const parseFormattedNumber = (value: string): number => {
+    return parseInt(value.replace(/,/g, ''), 10);
+  };
 
   const handleTransfer = async () => {
     if (!currentPlayer || !selectedPlayer || !transferAmount) {
@@ -73,6 +102,8 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
       return;
     }
 
+    const amount = parseFormattedNumber(transferAmount);
+
     toast.promise(
       new Promise((resolve, reject) => {
         socket.emit(
@@ -80,7 +111,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
           {
             fromPlayerName: currentPlayer.name,
             toPlayerName: players.find((p) => p.id === selectedPlayer)?.name,
-            amount: parseInt(transferAmount),
+            amount: amount,
             gameCode: gameCode,
           },
           (response: any) => {
@@ -114,6 +145,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
       return;
     }
 
+    const amount = parseFormattedNumber(transferAmount);
     const action = flag === "take" ? "Borrowing" : "Repaying";
     const consequence = flag === "take" ? "deeper in debt" : "slightly less poor";
 
@@ -123,7 +155,7 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
           "bankTransfer",
           {
             fromPlayerName: currentPlayer.name,
-            amount: parseInt(transferAmount),
+            amount: amount,
             gameCode: gameCode,
             flag: flag,
           },
@@ -183,38 +215,8 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
     );
   };
 
-  const handleNumpadClick = (value: string) => {
-    if (value === "C") {
-      setTransferAmount("");
-    } else if (value === "←") {
-      setTransferAmount((prev) => prev.slice(0, -1));
-    } else {
-      setTransferAmount((prev) => prev + value);
-    }
-  };
-
-  const renderNumpad = () => (
-    <div className="grid grid-cols-3 gap-2 mt-4">
-      {["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "←"].map((value) => (
-        <Button
-          key={value}
-          onClick={() => handleNumpadClick(value)}
-          className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded"
-        >
-          {value}
-        </Button>
-      ))}
-    </div>
-  );
-
   const formatNumber = (num: number): string => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + "M";
-    } else if (num >= 1000) {
-      return (num / 1000).toFixed(1) + "K";
-    } else {
-      return num.toLocaleString();
-    }
+    return num.toLocaleString();
   };
 
   return (
@@ -293,8 +295,13 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
                         </option>
                       ))}
                   </select>
-                  <div className="mb-4 text-center text-2xl font-bold">${formatNumber(parseInt(transferAmount) || 0)}</div>
-                  {renderNumpad()}
+                  <input
+                    type="text"
+                    value={transferAmount}
+                    onChange={handleTransferAmountChange}
+                    placeholder="Enter amount"
+                    className="mb-4 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300"
+                  />
                   <Button
                     onClick={handleTransfer}
                     className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors duration-300"
@@ -314,8 +321,13 @@ const GamePage: React.FC<GamePageProps> = ({ gameCode, playerName }) => {
               </CardHeader>
               {isBankExpanded && (
                 <CardContent className="p-6">
-                  <div className="mb-4 text-center text-2xl font-bold">${formatNumber(parseInt(transferAmount) || 0)}</div>
-                  {renderNumpad()}
+                  <input
+                    type="text"
+                    value={transferAmount}
+                    onChange={handleTransferAmountChange}
+                    placeholder="Enter amount"
+                    className="mb-4 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all duration-300"
+                  />
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     <Button
                       onClick={() => handleBankTransfer("take")}
