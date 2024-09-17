@@ -27,7 +27,7 @@ export async function POST(request: Request, { params }: { params: { code: strin
     const newPlayer = await prisma.player.create({
       data: {
         name: playerName,
-        balance: 15000000,
+        balance: 1500,
         gameId: game.id,
       },
     });
